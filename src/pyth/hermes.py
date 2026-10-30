@@ -26,6 +26,11 @@ price and confidence interval as integers in their text with one exponent
 it (`price.publish_time`). Each is made a `Decimal` exactly -- `"412345678"`
 at exponent -8 is 4.12345678 -- never through a float.
 
+A 429 is waited out (0.1.1): its `Retry-After` when Hermes sends one, else
+a backoff of 1, 2 then 4 seconds with jitter, at most `RETRIES` times, each
+counted; only then is the call failed. The stream, refused with a 429, is
+opened again after at least its `Retry-After` (work.py).
+
 With sample data the plugin answers from files committed with it
 (synthetic.py) and calls nothing.
 """
@@ -34,11 +39,12 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol
@@ -64,21 +70,51 @@ MOST_IDS = 50
 #: request for Hermes with a key.
 ALLOWED = "as the key's Pyth plan allows (Pyth states its limits per plan)"
 NS = 1_000_000_000
+#: How many times a 429 is waited out before the call fails.
+RETRIES = 3
+#: The first wait after a 429 without `Retry-After`, in seconds; doubled each time.
+BACKOFF_FIRST_SECONDS = 1.0
+#: The longest one wait may be, whatever `Retry-After` asks.
+WAIT_MOST_SECONDS = 60.0
 
 
 class HermesError(Exception):
     """Hermes answered with an error, or could not be reached: its status
     (0 for none) and what it said, in words that never carry the key."""
 
-    def __init__(self, status: int, said: str) -> None:
+    def __init__(self, status: int, said: str, retry_after: float | None = None) -> None:
         super().__init__(said)
         self.status = status
+        #: The seconds Hermes asked to be waited (`Retry-After`), where it said.
+        self.retry_after = retry_after
+
+
+def retry_after(headers: Mapping[str, str]) -> float | None:
+    """Seconds from a `Retry-After` header given in seconds; None where it
+    is absent or not a number (an HTTP date is not read: the backoff stands)."""
+    for name, value in headers.items():
+        if name.lower() == "retry-after":
+            try:
+                seconds = float(value.strip())
+            except ValueError:
+                return None
+            return seconds if seconds >= 0 else None
+    return None
+
+
+def backoff(attempt: int, rand: Callable[[], float] = random.random) -> float:
+    """The wait before retry `attempt` (0 first) without `Retry-After`: 1, 2,
+    4 seconds, each between half and the whole of it (jitter), so plugins
+    refused together do not come back together."""
+    full = min(BACKOFF_FIRST_SECONDS * (1 << attempt), WAIT_MOST_SECONDS)
+    return full / 2 + rand() * full / 2
 
 
 class Transport(Protocol):
-    """How Hermes is reached: one request, and one stream of lines."""
+    """How Hermes is reached: one request (its status, body and headers),
+    and one stream of lines."""
 
-    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str]: ...
+    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str, Mapping[str, str]]: ...
 
     def lines(self, url: str, headers: dict[str, str]) -> Iterator[str]: ...
 
@@ -86,13 +122,14 @@ class Transport(Protocol):
 class Https:
     """Hermes over HTTPS, with the standard library."""
 
-    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str]:
+    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str, Mapping[str, str]]:
         request = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as answer:  # noqa: S310 - Hermes' https address
-                return int(answer.status), answer.read().decode("utf-8")
+                return int(answer.status), answer.read().decode("utf-8"), dict(answer.headers)
         except urllib.error.HTTPError as refused:
-            return int(refused.code), refused.read().decode("utf-8", "replace")
+            body = refused.read().decode("utf-8", "replace")
+            return int(refused.code), body, dict(refused.headers or {})
         except (urllib.error.URLError, TimeoutError, OSError) as unreached:
             raise HermesError(0, f"Hermes was not reached: {unreached}") from None
 
@@ -101,7 +138,10 @@ class Https:
         try:
             answer = urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS * 3)  # noqa: S310 - Hermes' https address
         except urllib.error.HTTPError as refused:
-            raise HermesError(int(refused.code), _said(int(refused.code), "")) from None
+            status = int(refused.code)
+            raise HermesError(
+                status, _said(status, ""), retry_after(dict(refused.headers or {}))
+            ) from None
         except (urllib.error.URLError, TimeoutError, OSError) as unreached:
             raise HermesError(0, f"Hermes' stream was not reached: {unreached}") from None
         with answer:
@@ -185,11 +225,18 @@ class Hermes:
     health, each answer kept before it is read."""
 
     def __init__(
-        self, store: RawStore, transport: Transport, mode: str = "live", key: str = ""
+        self,
+        store: RawStore,
+        transport: Transport,
+        mode: str = "live",
+        key: str = "",
+        sleep: Callable[[float], None] = time.sleep,
+        rand: Callable[[], float] = random.random,
     ) -> None:
         self.store = store
         self.transport = transport
         self.key = key
+        self.sleep, self.rand = sleep, rand
         self.session = Session(
             mode=mode,
             endpoints=(
@@ -225,21 +272,32 @@ class Hermes:
         self, call: str, name: str, path: str, query: Sequence[tuple[str, str]]
     ) -> tuple[str, str]:
         """One request: its answer kept, then its body and the raw record's
-        key; an error answer kept too, then raised in words."""
+        key; a 429 waited out (`Retry-After`, else backoff with jitter) up to
+        `RETRIES` times; an error answer kept too, then raised in words."""
         url = self._url(path, query)
         health = self.health
-        health.calls += 1
-        try:
-            status, body = self.transport.get(url, self._headers())
-        except HermesError as failed:
-            self._failed(str(failed))
-            raise
-        now = time.time_ns()
-        key = self.store.keep(
-            call, name, {"received_at_ns": now, "request": url, "status": status, "body": body}
-        )
-        if status == 429:
+        attempt = 0
+        while True:
+            health.calls += 1
+            try:
+                status, body, headers = self.transport.get(url, self._headers())
+            except HermesError as failed:
+                self._failed(str(failed))
+                raise
+            now = time.time_ns()
+            key = self.store.keep(
+                call, name, {"received_at_ns": now, "request": url, "status": status, "body": body}
+            )
+            if status != 429:
+                break
             health.rate_limited += 1
+            if attempt >= RETRIES:
+                break
+            asked = retry_after(headers)
+            wait = backoff(attempt, self.rand) if asked is None else asked
+            log.info("Hermes answered 429; waiting %.1f s before trying again", wait)
+            self.sleep(min(wait, WAIT_MOST_SECONDS))
+            attempt += 1
         if status != 200:
             said = _said(status, body)
             self._failed(said)
@@ -299,5 +357,7 @@ class Hermes:
                 self.health.last_ok_ns = now
                 yield read_updates(body), key
         except HermesError as failed:
+            if failed.status == 429:
+                self.health.rate_limited += 1
             self._failed(str(failed))
             raise

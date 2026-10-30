@@ -22,7 +22,8 @@ of `rates` stands, for the curve's feeds alone; each tenor's value recorded
 when it changed and at most every five minutes, as the next version of the
 day's row (`PACE_SECONDS`); each event the dataset's sign of life
 (`Wants.liveness`) at most once a minute. A stream that ends or fails is
-opened again after a pause that grows to a minute.
+opened again after a pause that grows to a minute, with jitter, and is
+never shorter than a 429's `Retry-After`.
 
 **Its licences** (contract v20, W10.9): read on start and each minute.
 """
@@ -32,6 +33,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import random
 import time
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
@@ -61,6 +63,13 @@ LIVENESS_EVERY_SECONDS = 60
 RETRY_FIRST_SECONDS = 2
 RETRY_MOST_SECONDS = 60
 NS = 1_000_000_000
+
+
+def stream_pause(pause: float, rand: Callable[[], float] = random.random) -> float:
+    """The pause before the stream is opened again: `pause` and up to half
+    as much again (jitter), so it is never shorter than a `Retry-After`."""
+    return pause + rand() * pause / 2
+
 
 #: Why each dataset not presented declines its wants.
 WAITING = {
@@ -276,7 +285,7 @@ class Work:
     async def keep_streaming(self) -> None:
         """Hermes' stream of the curve's feeds, open while a standing want of
         `rates` stands; opened again after a pause where it ends or fails."""
-        pause = RETRY_FIRST_SECONDS
+        pause: float = RETRY_FIRST_SECONDS
         while True:
             if not self.streaming_wanted():
                 self.wake.clear()
@@ -291,8 +300,11 @@ class Work:
             except (HermesError, meridian.MeridianError, OSError) as failed:
                 self.stream.error = str(failed)
                 log.warning("the stream stopped: %s", failed)
+                asked = failed.retry_after if isinstance(failed, HermesError) else None
+                if asked is not None:
+                    pause = max(pause, min(asked, RETRY_MOST_SECONDS))
             self.stream.open = False
-            await asyncio.sleep(pause)
+            await asyncio.sleep(stream_pause(pause))
             pause = min(pause * 2, RETRY_MOST_SECONDS)
 
     async def _run_stream(self, ids: list[str]) -> None:
