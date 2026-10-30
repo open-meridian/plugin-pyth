@@ -1,0 +1,6 @@
+# The e2e's hosts file, mounted over the plugin's /etc/hosts (e2e/plugin.yaml):
+# Hermes answers nowhere, so the run never reads Pyth's live service and no
+# key is ever needed or sent.
+127.0.0.1 localhost
+::1 localhost
+127.0.0.1 hermes.pyth.network

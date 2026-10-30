@@ -1,0 +1,8 @@
+{#- Datasets, at admin: the data role's (meridian/roles/data/datasets.html),
+    with Pyth's nuance at its blocks only -- "Presented" as a column of
+    "Served": whether each dataset records now, or why it waits, and who
+    stands behind its values on the cell's title. One screen holds the
+    seven rows, so nothing else is added above them.
+    No price and no rate: those are the reading roles'. -#}
+{% extends "meridian/roles/data/datasets.html" %}
+{% block vendor_columns %}{% if row is none %}<th>Presented</th>{% else %}{% set f = data.families|selectattr("dataset", "equalto", row.dataset)|first %}<td data-dataset="{{ row.dataset }}" title="{{ f.behind }}">{% if f.presented %}Yes{% if data.curve_record %} <code class="wide-only">{{ data.curve_record }}</code>{% else %} <span class="badge warn" title="The US Treasury par yield curve's record is not resolved yet">no record</span>{% endif %}{% else %}<span class="badge warn" title="{{ f.why_not }}">Waits</span>{% endif %}</td>{% endif %}{% endblock %}

@@ -1,0 +1,15 @@
+{#- Connection, at admin: the data role's (meridian/roles/data/connection.html),
+    with Pyth's nuance at its blocks only -- "Catalogue" as one row of
+    "Limits and use", its detail each dataset's feeds in Pyth's catalogue and
+    whether it records now; and the stream's events as a row of "Stream". No
+    price and no rate: those are the reading roles'. -#}
+{% extends "meridian/roles/data/connection.html" %}
+{% import "meridian/roles/_rows.html" as om %}
+{% block vendor_rows %}{% if section == "Limits and use" %}
+<tr data-catalogue="{{ data.families|map(attribute='feeds')|sum }}"><th scope="row">Catalogue</th><td>{% if data.catalogue_read_at %}{{ data.families|map(attribute="feeds")|sum }} feeds in its datasets, {{ data.not_served }} in none{% else %}Not read yet{% endif %}</td><td class="more"><details class="row-detail" name="facts"><summary aria-label="Details of Catalogue">…</summary><div class="row-detail-pop"><h3>Pyth's feed catalogue</h3><dl>
+<dt>Read</dt><dd>{{ data.catalogue_read_at or "Not yet: on the first want" }}</dd>
+{% for f in data.families %}<dt><code>{{ f.dataset }}</code></dt><dd>{{ f.feeds }} feeds; {{ "records now" if f.presented else "waits: " ~ f.why_not }}</dd>
+{% endfor %}<dt>In no dataset</dt><dd>{{ data.not_served }} feeds: discount factors, reference rates Hermes states no effective date for, and kinds no dataset holds</dd></dl></div></details></td></tr>
+{% elif section == "Stream" %}
+{{ om.row("Events", data.stream_events, ("Last stopped: " ~ data.stream_error) if data.stream_error else "The constant-maturity curve's feeds, while a standing want of rates stands") }}
+{% endif %}{% endblock %}
