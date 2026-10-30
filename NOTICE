@@ -1,0 +1,9 @@
+meridian-pyth
+Copyright 2026 Societal Lab Inc.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+Pyth and Pyth Network are trademarks of their owners. This project is not
+affiliated with or endorsed by the Pyth Data Association or Douro Labs; it
+reads Pyth's Hermes API with a deployment's own Pyth API key, under that
+deployment's own subscription terms (docs/terms.md).
