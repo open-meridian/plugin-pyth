@@ -1,0 +1,180 @@
+{
+ "latest": {
+  "0f5fd558019a7cad9eaa012cd7228c65f2b7ed31db3f66ec557087a769df0f67": {
+   "conf": "0",
+   "expo": -8,
+   "price": "430000000",
+   "publish_time": 1793386800
+  },
+  "19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5": {
+   "conf": "5100",
+   "expo": -5,
+   "price": "68123000",
+   "publish_time": 1793386800
+  },
+  "29eaf1ffe7682ea3df3f3dd1e382dccaef555a34f01fff78b27befc34ac7642c": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "2d384f5c3545ea503cf7e14d6c5dcdaac17bd404b8a0865c1ce0068bcf39e579": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "2f6c3d4522c42ccbf7ab5c57af066e5a0100d59184f1c46c81fbf84ffe011ded": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "3c3ec821d54bda71719c66be62747fdff7d60652ca3264964d5ac6c0b224d65f": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "371234500",
+   "publish_time": 1793386800
+  },
+  "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688": {
+   "conf": "4200",
+   "expo": -5,
+   "price": "23104500",
+   "publish_time": 1793386800
+  },
+  "516201deef5595ac1c5d771563ba183132f057f5b9cf42fef820a961c264af58": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "569cc77eb4c5ce4c65efc44187001047043c4a2517daf9f339d44b6d8fbf42bd": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "59d00df1962bf3bb7096f0314145f8190e4631214c0e7a68c97ebe2cc83ebcc4": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "411234567",
+   "publish_time": 1793386800
+  },
+  "765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2": {
+   "conf": "850",
+   "expo": -3,
+   "price": "2654321",
+   "publish_time": 1793386800
+  },
+  "7d01ec0cb9d38918cd497f97b24cb6cea5552993f5da05863886e6a2d33ee0aa": {
+   "conf": "180000",
+   "expo": -8,
+   "price": "361234567",
+   "publish_time": 1793386800
+  },
+  "8ecbd0cd544fadb22f3ca0632ed439872d8d659c639e9df494555013daff0722": {
+   "conf": "1200000",
+   "expo": -8,
+   "price": "9987654321",
+   "publish_time": 1793386800
+  },
+  "9c196541230ba421baa2a499214564312a46bb47fb6b61ef63db2f70d3ce34c1": {
+   "conf": "210000",
+   "expo": -8,
+   "price": "412345678",
+   "publish_time": 1793386800
+  },
+  "a995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b": {
+   "conf": "9",
+   "expo": -5,
+   "price": "116431",
+   "publish_time": 1793386800
+  },
+  "c27b5d0f19b930f327bb35d02ac8d736d3fbb7bf90bbe7db01fd4b9d98f7b9e6": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "362100000",
+   "publish_time": 1793386800
+  },
+  "c96458d393fe9deb7a7d63a0ac41e2898a67a7750dbd166673279e06c868df0a": {
+   "conf": "2100",
+   "expo": -8,
+   "price": "3688000",
+   "publish_time": 1793386800
+  },
+  "cde6d966a5948ddd959246931419e6da7a29f56a33bcf29e24ec2c631ce998df": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "389876543",
+   "publish_time": 1793386800
+  },
+  "d19d5429b6783f541ca6be7dfb8d9d71422e6c49fd0b612c5206eb49742ac061": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "461000000",
+   "publish_time": 1793386800
+  },
+  "ddc2f26a575271d86a7c56ef551ad1dcd76ca8098fcbbd07e9b7d4771a3f05c1": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43": {
+   "conf": "2345678901",
+   "expo": -8,
+   "price": "6812345678901",
+   "publish_time": 1793386800
+  },
+  "e6d4e1a47e2ffbdd5d4c41a5061c12bda1e7ccfe7fddec6703acbbb1f0b8ac11": {
+   "conf": "10000",
+   "expo": -8,
+   "price": "92345678",
+   "publish_time": 1793386800
+  },
+  "e98eb556af2214e01a41e87a271636c465f15e973d2a92ebf3a64f46d4bae01b": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "465432100",
+   "publish_time": 1793386800
+  },
+  "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a": {
+   "conf": "45000",
+   "expo": -8,
+   "price": "99995000",
+   "publish_time": 1793386800
+  },
+  "ef2c98c804ba503c6a707e38be4dfbb16683775f195b091252bf24693042fd52": {
+   "conf": "15",
+   "expo": -3,
+   "price": "149512",
+   "publish_time": 1793386800
+  },
+  "f2baf47547953a670b463b56ac369f2156ffbb9ecb559e3fdf0d2bd433395943": {
+   "conf": "900000",
+   "expo": -8,
+   "price": "10003456789",
+   "publish_time": 1793386800
+  },
+  "f33ce961935076ef4dc98be75cf2126046eac1bffdcd7a0fa05ccf18b746fda6": {
+   "conf": "2400",
+   "expo": -5,
+   "price": "7312345",
+   "publish_time": 1793386800
+  },
+  "f55975601c3079b6d996f34e0cb3bb1379b577dfaa95e4720db6f70099d4e09d": {
+   "conf": "150000",
+   "expo": -8,
+   "price": "360512345",
+   "publish_time": 1793386800
+  },
+  "ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace": {
+   "conf": "123456789",
+   "expo": -8,
+   "price": "251234567890",
+   "publish_time": 1793386800
+  }
+ },
+ "note": "Made-up values in Hermes' documented shape, never Pyth's prices: sample data.",
+ "published": 1793386800
+}
