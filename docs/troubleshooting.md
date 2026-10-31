@@ -7,7 +7,7 @@
 | **No key** | No Pyth API key is set: Hermes serves only its catalogue | Enter the key in Settings |
 | Last error: *refused the request (401)* | Hermes did not accept the key, or it is missing | Check the key in your Pyth Terminal account, and enter it again |
 | Last error: *refused the key (403)* | The key's plan does not serve that feed | A Starter plan serves crypto alone; Pro serves every family |
-| Last error: *limiting this key's requests (429)* | The plan's rate limit was reached | Nothing, usually: the plugin asks one request at a time and tries again |
+| Last error: *limiting this key's requests (429)* | The plan's rate limit was reached | Nothing, usually: the plugin asks one request at a time and waits a 429 out, as long as Hermes' `Retry-After` asks or a short backoff, up to three times; seen often, the plan allows fewer requests than the wants ask |
 | **Not answering** | Hermes could not be reached | Check the deployment's outbound access to hermes.pyth.network |
 
 ## Wants and datasets

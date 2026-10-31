@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1 (2026-10-30)
+
+A bug fix (ruling 926), until the SDK's own retry helpers replace it (924).
+
+- **A 429 is waited out:** a request Hermes limits is tried again after its
+  `Retry-After`, or without one after a backoff of 1, 2 then 4 seconds with
+  jitter, at most three times, each counted in Connection's "Limits and use";
+  only then is the call failed. Before, the first 429 failed the read.
+- **The stream**, refused with a 429, is opened again no sooner than its
+  `Retry-After`, and its growing pause carries jitter.
+
 ## 0.1.0 (2026-10-30)
 
 The first version: Pyth Network's values from its Hermes API, on

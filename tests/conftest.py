@@ -6,6 +6,7 @@ delivers them."""
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -75,11 +76,11 @@ class Sample(Synthetic):
         self.status = status
         self.headers: list[dict[str, str]] = []
 
-    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str]:
+    def get(self, url: str, headers: dict[str, str]) -> tuple[int, str, Mapping[str, str]]:
         self.headers.append(dict(headers))
         if self.status != 200 and "/updates/" in url:
             self.requests.append(url)
-            return self.status, "unauthorized"
+            return self.status, "unauthorized", {}
         return super().get(url, headers)
 
 
