@@ -27,6 +27,14 @@ INSTANCE = "pyth"
 AT = datetime(2026, 10, 30, 19, 0, tzinfo=UTC)
 #: The par yield curve's record, as the platform seeds it.
 PAR = "INS-UST-PAR"
+#: Records of what Pyth prices (0.2.0): Bitcoin by a custodian's symbol, the
+#: euro by its ISO 4217 code, Apple by another source's symbol and a CUSIP,
+#: and Brent's index by Pyth's own feed ID.
+BTC = "INS-BTC"
+EUR = "INS-EUR"
+AAPL = "INS-AAPL"
+BRENT = "INS-BRENT"
+BRENT_FEED = "f33ce961935076ef4dc98be75cf2126046eac1bffdcd7a0fa05ccf18b746fda6"
 
 
 def held(store: Instruments) -> Instruments:
@@ -36,6 +44,19 @@ def held(store: Instruments) -> Instruments:
         asset_class=ops.ASSET_CLASS_REFERENTIAL,
         instrument_type=ops.INSTRUMENT_TYPE_RATE_CURVE,
     )
+    store.hold(
+        BTC,
+        ops.Identifier(scheme="symbol", value="BTC", source="a-custodian"),
+        asset_class=ops.ASSET_CLASS_CRYPTO_ASSET,
+    )
+    store.hold(EUR, ops.Identifier(scheme="iso4217", value="EUR"))
+    store.hold(
+        AAPL,
+        ops.Identifier(scheme="symbol", value="AAPL", source="a-custodian"),
+        ops.Identifier(scheme="cusip", value="037833100"),
+        asset_class=ops.ASSET_CLASS_EQUITY,
+    )
+    store.hold(BRENT, ops.Identifier(scheme="pyth_feed_id", value="0x" + BRENT_FEED))
     return store
 
 
@@ -88,7 +109,10 @@ def work(tmp: Path, plugin: Any = None, transport: Any = None, clock: Any = None
     """The plugin's work on the lake as a test stands it in and the sample
     data."""
     hermes = Hermes(RawStore(tmp), transport or Sample(), "synthetic")
-    return Work(plugin if plugin is not None else lake(), hermes, clock_ns=clock or Clock())
+    made: Work = (plugin if plugin is not None else lake()).bind(
+        Work(hermes, clock_ns=clock or Clock())
+    )
+    return made
 
 
 def ids_of(symbol_prefix: str) -> list[str]:

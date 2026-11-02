@@ -35,9 +35,8 @@ Every value is Pyth Network's composite of its publishers' prices. Pyth
 names no publishers feed by feed; its announcement of July 2026 names
 OpenYield, Fenics Market Data and Tradeweb among the publishers of its US
 Treasury pricing, so the `rates` and `treasury_prices` datasets' underlying
-source is Pyth's composite of its publishers, among them those three. The
-dataset's declared underlying source arrives with the contract revision
-the price datasets wait for.
+source is Pyth's composite of its publishers, among them those three. Each
+price dataset declares its class of source as composite.
 
 ## The licence
 

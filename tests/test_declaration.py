@@ -1,5 +1,5 @@
 """The catalogue, from code, as the deployment approves it: one dataset per
-family Pyth publishes (rulings 893 to 898)."""
+family Pyth publishes (rulings 893 to 898, 906)."""
 
 from __future__ import annotations
 
@@ -22,9 +22,15 @@ def test_seven_datasets_one_per_family() -> None:
 
 def test_prices_and_rates_by_their_kinds() -> None:
     by_key = {d.key: d for d in CATALOGUE}
-    for key in ("crypto", "fx", "equity", "metal", "commodities", "treasury_prices"):
-        assert list(by_key[key].data_types) == ["meridian.v1.Price"]
+    # From 0.2.0 (ruling 906): each price family's a composite mid with its
+    # confidence interval; the on-the-run Treasuries a composite too.
+    for key in ("crypto", "fx", "equity", "metal", "commodities"):
+        assert list(by_key[key].data_types) == ["meridian.v1.Price", "meridian.v1.Price.confidence"]
+        assert by_key[key].price_source_class == "composite"
+    assert list(by_key["treasury_prices"].data_types) == ["meridian.v1.Price"]
+    assert by_key["treasury_prices"].price_source_class == "composite"
     assert list(by_key["rates"].data_types) == ["meridian.v1.Rate"]
+    assert not by_key["rates"].price_source_class
     streamed = [ops.ObservationMode.Name(m) for m in by_key["rates"].modes]
     assert streamed == ["OBSERVATION_MODE_PULL", "OBSERVATION_MODE_STREAM"]
     assert by_key["rates"].day_time_zone == "America/New_York"

@@ -14,7 +14,8 @@ How the plugin reaches Hermes:
 - **Limits and use:** Pyth's limits are its plan's; the requests made, the
   last call and the last error; and **Catalogue**, when Pyth's feed
   catalogue was read and how many feeds each dataset holds. Its `…` opens
-  each dataset with its feeds and whether it records now or why it waits;
+  each dataset with its feeds and whether it records now or why it waits
+  (from 0.2.0 only `treasury_prices` waits);
 - **Stream:** whether Hermes' stream is open, and how many events it has
   sent.
 

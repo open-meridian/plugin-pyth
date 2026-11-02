@@ -11,7 +11,8 @@ role's, with Pyth's nuance at its blocks only.
   feeds each dataset holds.
 - **Datasets** (`/datasets`): the role's "Served", "Wants" and "Subjects",
   with Pyth's "Presented" column: whether each dataset records, or why it
-  waits (prices.py); and a notice naming who stands behind the values.
+  waits (prices.py: from 0.2.0 only `treasury_prices`); and a notice naming
+  who stands behind the values.
 
 Neither shows a price or a rate: those are the reading roles' to show.
 """
@@ -24,14 +25,11 @@ from pathlib import Path
 from typing import Any
 
 import meridian
-from meridian.edge import RawStore, storage_root
 from meridian.roles import data
 
 from . import prices
 from .catalogue import KEYS, TREASURY_PRICES
 from .declared import CATALOGUE
-from .hermes import Hermes
-from .synthetic import Synthetic
 from .work import WAITING, Work
 
 TITLE = "Pyth"
@@ -134,12 +132,12 @@ def connection_read(work: Work) -> ConnectionRead:
         rate_limited=health.rate_limited,
         last_call_at=_iso(max(health.last_ok_ns, health.last_failed_ns)),
         last_error=health.last_error,
-        sessions=1 if work.stream.open else 0,
+        sessions=1 if work.stream.state.state == "open" else 0,
         catalogue_read_at=_iso(work.catalogue.read_at_ns),
         families=families(work),
         not_served=work.catalogue.counts().get("", 0) if work.catalogue.feeds else 0,
-        stream_events=work.stream.events,
-        stream_error=work.stream.error,
+        stream_events=work.stream.state.messages,
+        stream_error=work.stream.state.last_error,
     )
 
 
@@ -177,18 +175,22 @@ def figures(work: Work) -> list[meridian.Figure]:
         connection = "Answering"
     last = work.wants.counts.last_ns
     presented = len([k for k in KEYS if k not in WAITING])
+    streamed = len(work.stream.state.subscribed)
+    open_ = work.stream.state.state == "open"
     return data.figures(
         connection=connection,
         entitled_at_vendor=f"{presented} of {len(KEYS)} datasets",
-        stream="1 curve" if work.stream.open else "Off",
+        stream=f"{streamed} feed{'' if streamed == 1 else 's'}" if open_ else "Off",
         last_recorded=datetime.fromtimestamp(last / 10**9, UTC) if last else None,
     )
 
 
 def _running(request: meridian.Request) -> Work:
+    """The work the plugin holds (`hold`, before `meridian.run` serves the
+    pages): its data role's class, registered on the connection."""
     held = _held.get("work")
     if held is None:
-        held = Work(request.plugin, Hermes(RawStore(storage_root()), Synthetic(), "synthetic"))
+        raise RuntimeError("the pages are served once the plugin holds its work")
     return held
 
 

@@ -14,8 +14,8 @@ from meridian.edge import RawStore
 
 from pyth.catalogue import Catalogue, read_catalogue
 from pyth.hermes import RETRIES, Hermes, HermesError, backoff, read_updates, retry_after
+from pyth.stream import RetryAfter
 from pyth.synthetic import Synthetic
-from pyth.work import stream_pause
 
 from conftest import Sample, ids_of
 
@@ -133,7 +133,18 @@ def test_a_429_without_retry_after_backs_off_with_jitter(tmp_path: Path) -> None
 def test_jitter_keeps_each_wait_between_half_and_the_whole() -> None:
     assert backoff(0, lambda: 0.0) == 0.5 and backoff(0, lambda: 1.0) == 1.0
     assert backoff(2, lambda: 0.0) == 2.0 and backoff(2, lambda: 1.0) == 4.0
-    assert stream_pause(10, lambda: 0.0) == 10 and stream_pause(10, lambda: 1.0) == 15
+
+
+def test_the_stream_waits_no_less_than_retry_after() -> None:
+    # The supervisor's backoff (0.2.0): a second, doubling, within a fifth;
+    # never sooner than a 429's Retry-After, within its most.
+    backoff = RetryAfter(first_s=1, most_s=60, jitter=0.0)
+    assert backoff.failed() == 1
+    backoff.asked = 7.0
+    assert backoff.failed() == 7.0
+    assert backoff.failed() == 4
+    backoff.asked = 600.0
+    assert backoff.failed() == 60
 
 
 def test_a_429_past_the_retries_fails_said(tmp_path: Path) -> None:

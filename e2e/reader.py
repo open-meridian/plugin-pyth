@@ -28,6 +28,7 @@ import meridian
 from meridian import Interface, Page, SourceChoice
 from meridian.operations import as_decimal
 from meridian.plugin.v1 import operations_pb2 as ops
+from meridian.roles import reporting
 from meridian.roles.data import rates
 
 PORT = 8088
@@ -54,16 +55,38 @@ def rate_json(rate):
     }
 
 
+def price_json(price):
+    meta = price.meta
+    return {
+        "dataset": meta.source.dataset,
+        "subject": meta.subjects[0].entity_id if meta.subjects else "",
+        "kind": ops.PriceKind.Name(price.kind),
+        "amount": str(as_decimal(price.price.amount)),
+        "currency": price.price.currency_code,
+        "confidence": str(as_decimal(price.confidence)) if price.HasField("confidence") else "",
+    }
+
+
+class Reporting(reporting.Role):
+    """`reporting`: reads the curve, prices and the datasets, and names the
+    euro by its ISO 4217 code."""
+
+
 class Reader:
-    def __init__(self, plugin):
-        self.plugin = plugin
+    """What the stand-in answers, through its role class (SDK 0.35: each
+    role one class, its acts made through it). It hears nothing: each read
+    is asked when the runner asks."""
+
+    def __init__(self):
+        self.reporting = Reporting()
+        self.euro = ""
 
     async def curve(self, query):
         one = lambda name: query.get(name, [""])[0]  # noqa: E731
         sources = SourceChoice(named=[one("dataset")]) if one("dataset") else None
-        read = await rates.read_curve(self.plugin, one("subject"), one("date"), sources=sources)
+        read = await rates.read_curve(self.reporting, one("subject"), one("date"), sources=sources)
         # What the lake left unanswered, asked once more for it alone.
-        answer = await self.plugin.list_rates(
+        answer = await self.reporting.list_rates(
             subjects=[meridian.SubjectRef(entity_id=one("subject"))], business_date=one("date"),
             sources=sources)
         return {
@@ -77,11 +100,12 @@ class Reader:
 
     async def prices(self, query):
         one = lambda name: query.get(name, [""])[0]  # noqa: E731
-        answer = await self.plugin.list_prices(
+        answer = await self.reporting.list_prices(
             subjects=[meridian.SubjectRef(entity_id=one("subject"))],
             sources=SourceChoice(named=[one("dataset")]))
         return {
             "prices": len(answer.prices),
+            "rows": [price_json(p) for p in answer.prices],
             "unanswered": [
                 {"subject": u.subject.entity_id, "dataset": u.dataset,
                  "reason": ops.UnansweredReason.Name(u.reason)}
@@ -89,13 +113,26 @@ class Reader:
             ],
         }
 
+    async def resolve(self):
+        """The euro's record, by its ISO 4217 code: a currency known by its
+        code alone."""
+        if not self.euro:
+            found = await self.reporting.resolve_identifier(
+                identifiers=[ops.Identifier(scheme="iso4217", value="EUR")])
+            if not found.instrument_id:
+                raise RuntimeError(f"the euro did not resolve: {found}")
+            self.euro = found.instrument_id
+        return {"euro": self.euro}
+
     async def answer(self, path, query):
+        if path == "/resolve":
+            return await self.resolve()
         if path == "/curve":
             return await self.curve(query)
         if path == "/prices":
             return await self.prices(query)
         if path == "/datasets":
-            listed = await self.plugin.list_datasets()
+            listed = await self.reporting.list_datasets()
             return {"datasets": [d.dataset for d in listed.datasets]}
         return {"page": "the e2e's reader"}
 
@@ -131,14 +168,14 @@ DECLARATION = meridian.Declaration(
 )
 
 
-async def main():
-    plugin = await meridian.connect(declaration=DECLARATION)
-    print(f"reader registered as {plugin.identity.instance_id}", flush=True)
-    threading.Thread(target=serve, args=(Reader(plugin),), daemon=True).start()
-    while True:
-        await asyncio.sleep(3600)
+def main():
+    reader = Reader()
+    threading.Thread(target=serve, args=(reader,), daemon=True).start()
+    # SDK 0.35: its role class registered on the connection, until the
+    # harness stops it.
+    LOOP.run_until_complete(meridian.run_async(declaration=DECLARATION, roles=[reader.reporting]))
 
 
 if __name__ == "__main__":
     asyncio.set_event_loop(LOOP)
-    LOOP.run_until_complete(main())
+    main()

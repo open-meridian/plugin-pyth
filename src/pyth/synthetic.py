@@ -10,11 +10,13 @@ runs, and is tested, with no Pyth API key and nothing called.
   in Hermes' documented shape (`price`, `conf`, `expo`, `publish_time`) --
   never Pyth's prices. A price at a past moment is the same values,
   published at that moment.
-- `synthetic/stream.sse`: three made-up events of Hermes' stream for the
-  constant-maturity curve, a minute apart, as server-sent events.
+- `synthetic/stream.sse`: three made-up events of Hermes' stream, a minute
+  apart, as server-sent events: the constant-maturity curve, Bitcoin,
+  the euro and Apple (from 0.2.0).
 
 The transport answers each request as Hermes would, by its path; an ID the
-sample does not hold is left out of the answer.
+sample does not hold is left out of the answer, and a stream's events carry
+only the feeds its address names.
 """
 
 from __future__ import annotations
@@ -68,6 +70,15 @@ class Synthetic:
 
     def lines(self, url: str, headers: dict[str, str]) -> Iterator[str]:
         self.requests.append(url)
-        if urllib.parse.urlsplit(url).path != STREAM:
+        parts = urllib.parse.urlsplit(url)
+        if parts.path != STREAM:
             return
-        yield from self.events
+        ids = {v for k, v in urllib.parse.parse_qsl(parts.query) if k == "ids[]"}
+        for line in self.events:
+            if not line.startswith("data:"):
+                yield line
+                continue
+            event = json.loads(line[len("data:") :])
+            event["parsed"] = [e for e in event.get("parsed", []) if e.get("id") in ids]
+            if event["parsed"]:
+                yield "data:" + json.dumps(event, separators=(",", ":"))

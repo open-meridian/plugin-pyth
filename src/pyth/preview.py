@@ -7,8 +7,9 @@ them without a deployment.
 The plugin's work runs on the SDK's lake as a test stands it in, in place of
 a sidecar -- the par yield curve resolved to a record the stand-in holds,
 every batch recorded -- against the sample data: the latest curve wanted and
-recorded, a business date's answered, a standing want kept current from the
-sample stream, and a want of a crypto price declined while the prices wait.
+recorded, a business date's answered, Bitcoin's latest price recorded,
+standing wants of both kept current from the sample stream, and a want of an
+on-the-run Treasury declined while it waits.
 Each page links the kit where the dashboard serves it, /.meridian/ui/<version>/:
 served beside the kit it is styled (`make preview SHOTS=...` checks each in a
 browser). `connection-first` and `datasets-first` are the pages before any
@@ -35,6 +36,8 @@ from .synthetic import Synthetic
 from .work import Work
 
 PAR = "INS-PREVIEW-UST-PAR"
+BTC = "INS-PREVIEW-BTC"
+UST = "INS-PREVIEW-UST10Y"
 PAGES = {
     "connection": "/",
     "datasets": "/datasets",
@@ -64,18 +67,25 @@ def _work() -> Work:
         ops.Identifier(scheme=curve.CURVE[0], value=curve.CURVE[1], source=curve.CURVE[2]),
         asset_class=ops.ASSET_CLASS_REFERENTIAL,
     )
+    lake.instruments.hold(
+        BTC,
+        ops.Identifier(scheme="symbol", value="BTC", source="a-custodian"),
+        asset_class=ops.ASSET_CLASS_CRYPTO_ASSET,
+    )
     store = RawStore(Path(tempfile.mkdtemp(prefix="pyth-preview-")))
-    return Work(lake, Hermes(store, Synthetic(), "synthetic"))
+    return lake.bind(Work(Hermes(store, Synthetic(), "synthetic")))
 
 
 async def worked() -> Work:
     """The work as sample data leaves it, on the stand-in lake."""
     work = _work()
-    await work.on_want(_want("want-latest", "rates", PAR))
-    await work.on_want(_want("want-1029", "rates", PAR, "2026-10-29"))
-    await work.on_want(_want("want-standing", "rates", PAR, standing=True))
-    await work._run_stream([f.feed_id for f in work.curve_feeds()])
-    await work.on_want(_want("want-btc", "crypto", "INS-PREVIEW-BTC"))
+    await work.on_observations_wanted(_want("want-latest", "rates", PAR))
+    await work.on_observations_wanted(_want("want-1029", "rates", PAR, "2026-10-29"))
+    await work.on_observations_wanted(_want("want-standing", "rates", PAR, standing=True))
+    await work.on_observations_wanted(_want("want-btc", "crypto", BTC, standing=True))
+    # The sample stream: three events, then it ends, as one session.
+    await work.stream.run(once=True)
+    await work.on_observations_wanted(_want("want-ust", "treasury_prices", UST))
     return work
 
 

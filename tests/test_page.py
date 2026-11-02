@@ -11,7 +11,7 @@ from meridian.testing import PageClient
 
 from pyth.page import connection_read, datasets_read, figures, hold, pages
 
-from conftest import PAR, Sample, want, work
+from conftest import BTC, PAR, Sample, want, work
 
 KEY = "test-key-not-real"
 
@@ -21,9 +21,11 @@ def client(tmp_path: Path) -> PageClient:
     done = work(tmp_path)
 
     async def run() -> None:
-        await done.on_want(want("w-1", [PAR]))
-        await done.on_want(want("w-standing", [PAR], standing=True))
-        await done.on_want(want("w-btc", ["INS-BTC"], key="crypto", data_type="meridian.v1.Price"))
+        await done.on_observations_wanted(want("w-1", [PAR]))
+        await done.on_observations_wanted(want("w-standing", [PAR], standing=True))
+        await done.on_observations_wanted(
+            want("w-btc", [BTC], key="crypto", data_type="meridian.v1.Price")
+        )
 
     asyncio.run(run())
     hold(done)
@@ -54,7 +56,10 @@ def test_connection_says_how_hermes_is_reached(client: PageClient) -> None:
 
 def test_datasets_say_which_record_and_which_wait(client: PageClient) -> None:
     text = client.get("/datasets", "admin").text
-    assert text.count(">Waits<") == 6 and "OpenYield" in text  # on the cell's title
+    # From 0.2.0 the on-the-run Treasuries alone wait; the curve's record
+    # is shown on the rates row alone.
+    assert text.count(">Waits<") == 1 and "OpenYield" in text  # on the cell's title
+    assert text.count(f'<code class="wide-only">{PAR}</code>') == 1
 
 
 def test_the_key_is_never_shown(tmp_path: Path) -> None:

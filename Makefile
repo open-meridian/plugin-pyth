@@ -38,11 +38,11 @@ CLI_CONTEXT := $(if $(MERIDIAN_BIN),--build-context cli=$(MERIDIAN_BIN),)
 # commit, when this plugin chooses. `make e2e RUNTIME_IMAGE=...:latest
 # HARNESS_IMAGE=...:latest` tries a newer core; e2e-latest.yaml does that
 # weekly.
-# Core 8def82a (merged as bcd96cb), contract v28, as published with chart 0.1.313.
+# Core 1ae36f0 (merged as 3f99222), contract v29, as published with chart 0.1.339.
 # Its harness holds the platform's seeded referential records, matched by
 # symbol and administrator: the US par yield curve among them.
-RUNTIME_IMAGE ?= ghcr.io/open-meridian/meridian-runtime:8def82a@sha256:f0565be718b588bb96fabf52a5b16a60500db985b44f480edb73b8005d8e931f
-HARNESS_IMAGE ?= ghcr.io/open-meridian/meridian-harness:8def82a@sha256:763b1d04466df14ef41e17497133a4e292f30df1631494a4cc36cff03326deff
+RUNTIME_IMAGE ?= ghcr.io/open-meridian/meridian-runtime:1ae36f0@sha256:163943c154dbdbc724bdca6acd482f136d7971849c92bccd61842a1e5118098e
+HARNESS_IMAGE ?= ghcr.io/open-meridian/meridian-harness:1ae36f0@sha256:8884646cb4bdf0aad9e99e495a20d94856e1881968eff40edc2a2ec1d3ea3235
 # The harness's two plugins: this one, as instance pyth, holding data as
 # pyproject.toml declares; and the reader, a reporting plugin the e2e runs
 # from e2e/reader.py in the same image.
