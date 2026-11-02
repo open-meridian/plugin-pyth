@@ -11,5 +11,5 @@
 {% for f in data.families %}<dt><code>{{ f.dataset }}</code></dt><dd>{{ f.feeds }} feeds; {{ "records now" if f.presented else "waits: " ~ f.why_not }}</dd>
 {% endfor %}<dt>In no dataset</dt><dd>{{ data.not_served }} feeds: discount factors, reference rates Hermes states no effective date for, and kinds no dataset holds</dd></dl></div></details></td></tr>
 {% elif section == "Stream" %}
-{{ om.row("Events", data.stream_events, ("Last stopped: " ~ data.stream_error) if data.stream_error else "The constant-maturity curve's feeds, while a standing want of rates stands") }}
+{{ om.row("Events", data.stream_events, ("Last stopped: " ~ data.stream_error) if data.stream_error else "The feeds the standing wants name: the curve's and each price kept current") }}
 {% endif %}{% endblock %}

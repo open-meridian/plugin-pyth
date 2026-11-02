@@ -1,5 +1,5 @@
 """`make e2e`: the plugin on the plugin harness of the runtime it pins
-(contract v28), beside `reader`, a reporting plugin (e2e/reader.py) entitled
+(contract v29), beside `reader`, a reporting plugin (e2e/reader.py) entitled
 to its datasets, and the harness's admin. Run from the repository's root by
 the Makefile, which builds the image and writes the harness's plugins first;
 standard library only. The harness's stand-in for the platform holds the
@@ -17,19 +17,23 @@ the plugin.
    record by Treasury's title under `ustreasury`.
 3. Parity: through the deployment's MCP, `read_connection` and
    `read_datasets` answer what the pages show -- the key not set, seven
-   datasets, the price families and `treasury_prices` waiting, the curve's
+   datasets, `treasury_prices` alone waiting (from 0.2.0), the curve's
    `INS-` -- and core's `dashboard__list_datasets` lists the seven datasets
    as the catalogue declares them.
 4. Licensed and entitled at the Data sources page: the reader is entitled to
-   `rates`, `crypto` and `treasury_prices`.
+   `rates`, `crypto`, `fx` and `treasury_prices`.
 5. Read back, as a curve for a date (`rates.read_curve`): the reader's read
    of 29 October 2026 is asked of the plugin, which reads it at the day's
    close and records seven points, 2 to 30 years in tenor order, the 10-year
    4.11234567 per cent, a par yield, bond-equivalent, published at 17:00 New
    York.
-6. Declined while they wait: a price of `crypto` and of `treasury_prices`,
-   each asked of the plugin and declined not covered; nothing is recorded as
-   a price.
+6. Declined: the curve's record's price of `crypto`, which it is not, and
+   of `treasury_prices`, which waits, each asked of the plugin and declined
+   not covered; no on-the-run Treasury's price is recorded.
+7. A composite mid (from 0.2.0, rulings 906 and 990): the euro's record,
+   resolved by its ISO 4217 code, its price of `fx` asked of the plugin,
+   which matches it to Pyth's EUR/USD feed and records its mid, 1.16431 US
+   dollars, with its confidence interval, 0.00009.
 """
 
 import json
@@ -47,6 +51,7 @@ INSTANCE = "pyth"
 KEYS = ["crypto", "fx", "equity", "metal", "commodities", "rates", "treasury_prices"]
 DATASETS = [f"{INSTANCE}:{key}" for key in KEYS]
 RATES, CRYPTO, TREASURIES = f"{INSTANCE}:rates", f"{INSTANCE}:crypto", f"{INSTANCE}:treasury_prices"
+FX = f"{INSTANCE}:fx"
 DAY = "2026-10-29"
 #: 17:00 New York on 29 October 2026, in nanoseconds: the day's close.
 CLOSE_NS = 1_793_307_600 * 10**9
@@ -147,7 +152,7 @@ def run():
     must(connection["mode"] == "Sample data"
          and connection["credentials"] == [{"label": "Pyth API key", "set": False}]
          and [f["dataset"] for f in connection["families"]] == DATASETS
-         and [f["presented"] for f in connection["families"]] == [False] * 5 + [True, False]
+         and [f["presented"] for f in connection["families"]] == [True] * 6 + [False]
          and connection["families"][5]["feeds"] == 7,
          f"step 3, read_connection: {connection}")
     datasets = until(60, lambda: (lambda d: d if d["curve_record"] else None)(call(read_datasets)),
@@ -156,7 +161,7 @@ def run():
     must(record.startswith("INS-") and [s["dataset"] for s in datasets["served"]] == DATASETS,
          f"step 3, read_datasets: {datasets}")
     shown = page(INSTANCE, "admin", "/datasets")
-    must(record in shown and shown.count(">Waits<") == 6,
+    must(record in shown and shown.count(">Waits<") == 1,
          "step 3, Datasets shows what read_datasets answers")
     listed = {d["dataset"]: d for d in call("dashboard__list_datasets")["datasets"]}
     entry = listed.get(RATES, {}).get("catalogue_entry", {})
@@ -166,7 +171,7 @@ def run():
     must(all(d in listed for d in DATASETS), f"step 3, core lists the seven datasets: {list(listed)}")
 
     # 4. Licensed and entitled.
-    for dataset in (RATES, CRYPTO, TREASURIES):
+    for dataset in (RATES, CRYPTO, FX, TREASURIES):
         runner("licence", dataset, "kept=true", "retention_days=0", "derived_use=true",
                "display=true", "personal_use=false",
                "note=Pyth's subscription terms: internal use and display.")
@@ -187,7 +192,7 @@ def run():
          and ten[0]["dataset"] == RATES,
          f"step 5, the curve in tenor order, the 10-year as Hermes states it: {curve}")
 
-    # 6. The prices wait: each asked of the plugin and declined.
+    # 6. Declined: the curve is no crypto asset; the Treasuries wait.
     for dataset in (CRYPTO, TREASURIES):
         until(90, lambda: (lambda p: p["prices"] == 0 and [u["reason"] for u in p["unanswered"]]
                            == ["UNANSWERED_REASON_NOT_COVERED"])(
@@ -196,16 +201,28 @@ def run():
     lake = store_lake()
     must(f"want|{CRYPTO}|declined|{record}|" in lake and f"want|{TREASURIES}|declined|{record}|" in lake,
          f"step 6, the lake holds the plugin's declines: {[l for l in lake.splitlines() if l.startswith('want|')]}")
-    must(not any(line.startswith("row|") and "|meridian.v1.Price|" in line for line in lake.splitlines()),
-         "step 6, no price recorded while the prices wait")
+    must(not any(line.startswith("row|") and "|meridian.v1.Price|" in line and TREASURIES in line
+                 for line in lake.splitlines()),
+         "step 6, no on-the-run Treasury's price recorded while it waits")
+
+    # 7. A composite mid: the euro's, priced in US dollars, its confidence beside it.
+    euro = reader("/resolve")["euro"]
+    read = until(90, lambda: (lambda p: p if p["prices"] == 1 else None)(
+        reader(f"/prices?subject={euro}&dataset={FX}")),
+        "step 7, the euro's price of fx was not recorded")
+    [mid] = read["rows"]
+    must(mid["kind"] == "PRICE_KIND_MID" and mid["amount"] == "1.16431" and mid["currency"] == "USD"
+         and mid["confidence"] == "0.00009" and mid["subject"] == euro and mid["dataset"] == FX,
+         f"step 7, Pyth's composite mid of EUR/USD with its confidence interval: {mid}")
 
     print(f"e2e OK in {int(time.time() - started)}s on the plugin harness: no key said on Connection "
           f"and nothing recorded; sample data's catalogue read and the par yield curve's record "
           f"resolved to its INS-; read_connection and read_datasets answering what the pages show, "
           f"and core listing the seven datasets as declared; licensed and entitled; the curve of 29 "
           f"October read at its close, seven points in tenor order (10-year 4.11234567, a par "
-          f"yield, bond-equivalent, published at 17:00 New York); and a crypto price and a "
-          f"Treasury's declined not covered while they wait, no price recorded")
+          f"yield, bond-equivalent, published at 17:00 New York); a crypto price of the curve "
+          f"and a Treasury's declined not covered; and the euro's composite mid, 1.16431 US "
+          f"dollars, its confidence 0.00009")
 
 
 def main():

@@ -1,13 +1,13 @@
 # meridian-pyth
 
 Pyth Network's prices and rates as an Open Meridian data plugin, in Python
-on the open-meridian SDK (0.33.3, contract v28). It runs beside a sidecar in
+on the open-meridian SDK (0.35.2, contract v29). It runs beside a sidecar in
 a Meridian deployment and reads Pyth's Hermes API with the deployment's
 Pyth API key, putting Pyth's values into the deployment's lake. What it may
 publish and subscribe to comes from its one role, `data`, declared in
 `pyproject.toml`, once a deployment admin approves it. Rulings 866, 868,
 876, 879, 880 and 893 to 898 placed it, named its datasets and the vendor
-scheme `pyth_feed_id`, and set what waits for the contract-28 amendment.
+scheme `pyth_feed_id`; 906 and 990 record its prices as composite mids.
 
 ## What it is
 
@@ -22,12 +22,23 @@ scheme `pyth_feed_id`, and set what waits for the contract-28 amendment.
 - `src/pyth/curve.py` makes Pyth's US Treasury constant-maturity par yields
   rates: points of Treasury's par yield curve record, through the SDK's
   `meridian.roles.data.rates`.
-- `src/pyth/prices.py` is the one adapter the price datasets wait behind:
-  the conversion is ready (`PythPrice`), and `row` refuses until the
-  contract-28 amendment's composite kind and confidence are pinned.
-- `src/pyth/work.py` answers the lake's wants through the SDK's `Wants`,
-  declines what waits, and keeps a standing want of `rates` current from
-  Hermes' stream, paced.
+- `src/pyth/prices.py` makes Pyth's prices the lake's: each a `mid` with
+  its `confidence`, the datasets' `price_source_class` `composite` (ruling
+  906, declared.py); a crypto feed quoted in a token is not served.
+- `src/pyth/work.py`, the data role's class (`Work`, a `data.Role` making
+  its acts on itself; open-meridian 0.35): answers the lake's wants through
+  the SDK's `Wants`, matches each price subject's record to a feed
+  (`feed_of`), declines what waits (`treasury_prices`), and keeps standing
+  wants current from Hermes' stream, paced.
+- `src/pyth/stream.py`: Hermes' stream kept open by the SDK's supervisor
+  (`Streamer`, a `helpers.sessions.Supervisor` over the plugin's own
+  `HermesLink`; rulings 1027 and 1038), never sooner than a 429's
+  `Retry-After`.
+- `src/pyth/__main__.py`: `Lake(Work)` registered with `meridian.run`,
+  which applies the settings (`Lake.on_settings`), serves the pages, sets
+  the figures and restarts `Lake.run` -- the stream, the licences and
+  health each minute, the latency reports -- after a backoff should it
+  fail. Its tests bind `Work` to the suites' recorder.
 - `src/pyth/page.py` and `templates/` are the data role's two pages under
   Manage, Connection and Datasets, each a read tool (`read_connection`,
   `read_datasets`). The templates extend the role's and add Pyth's nuance at
@@ -41,10 +52,9 @@ scheme `pyth_feed_id`, and set what waits for the contract-28 amendment.
 - **The key is a secret.** It is sent to Hermes as a bearer token and
   nowhere else: never logged, never kept with an answer, never shown. A
   test holds every page, tool, figure and raw record to it.
-- **Nothing mislabelled.** Pyth's composite price is no mid and no last
-  trade: until the amendment is pinned no price is recorded, and every want
-  of a price dataset is declined. Move to it in prices.py, declared.py and
-  the suite's not-presented reasons, nothing else.
+- **Nothing mislabelled.** Pyth's composite price is recorded as its mid,
+  its class of source declared composite on the dataset and its confidence
+  interval on the price (ruling 906); never as a close or a last trade.
 - **Exact decimals.** A value is Hermes' integer text at its exponent,
   never a float.
 - **Nothing guessed.** A tenor Pyth did not publish is no row; a reference

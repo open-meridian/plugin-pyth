@@ -14,7 +14,7 @@
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A price declined, *not covered* | The price datasets wait for the contract revision that adds Pyth's composite price | Nothing yet: the version that pins it records them |
+| A price declined, *not covered* | The record names no feed of that dataset: no Pyth feed ID, and no symbol or currency code Pyth names a feed by, in the record's currency; or a kind other than a mid was asked | Check the record's identifiers on the instrument's page; Pyth's prices are mids only |
 | `treasury_prices` declined, *not covered* | The on-the-run Treasuries wait for the bond template | Nothing yet |
 | `rates` declined, *not covered* | The want named a record other than the par yield curve's | Read the par yield curve's record |
 | `rates` declined, *source silent* | Hermes answered nothing: no key, a plan without rates, or a refusal | See Connection's last error |

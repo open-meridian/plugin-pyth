@@ -12,14 +12,15 @@ documentation).
   publishers is Pyth's own, so Pyth is the originator; no aggregator. Who
   stands behind it -- "Pyth Network's composite of its publishers' prices",
   and for the Treasury families the publishers Pyth's announcement names,
-  OpenYield, Fenics Market Data and Tradeweb -- is declared on each dataset
-  once the contract-28 amendment's `underlying_source` is pinned
-  (prices.py), and said in docs/terms.md meanwhile.
-- **the five price families**: `meridian.v1.Price`, pulled for the latest or
-  a past moment and streamed from Hermes for a standing want; real time
-  (Hermes serves each update as Pyth publishes it). **Not presented** until
-  the amendment's composite kind and confidence are pinned: every want is
-  declined, and no price is recorded under another kind (prices.py).
+  OpenYield, Fenics Market Data and Tradeweb -- is said on the Datasets page
+  and in docs/terms.md; the licence default is left as it stands (rulings
+  1030 to 1032: it is not extended, `underlying_source` among it).
+- **the five price families**: `meridian.v1.Price` with its confidence
+  interval (`meridian.v1.Price.confidence`), pulled for the latest or a
+  past moment and streamed from Hermes for a standing want; real time
+  (Hermes serves each update as Pyth publishes it). Each price is Pyth's
+  composite `mid`, the datasets' `price_source_class` `composite` (contract
+  28 as amended, ruling 906; from 0.2.0, ruling 990). Their day is UTC's.
 - **`rates`**: `meridian.v1.Rate`, Pyth's US Treasury constant-maturity par
   yields as points of the par yield curve (curve.py): pulled for the latest
   or a past business date (its close, 17:00 New York, the Treasury market's
@@ -27,7 +28,8 @@ documentation).
   tenor's value recorded at most every five minutes as the next version of
   the day's row. New York's day, ending at 17:00.
 - **`treasury_prices`**: `meridian.v1.Price`, the on-the-run Treasuries'
-  clean prices and yields. **Not presented** until v29's `bond` template.
+  clean prices and yields, a composite too. **Not presented** until v29's
+  `bond` template.
 - `history` 0: Hermes states no bound on how far back a price at a time
   reaches; a moment before a feed's first is declined as beyond history.
 - no venue (Pyth is no venue) and no calendar.
@@ -60,6 +62,11 @@ from .catalogue import COMMODITIES, CRYPTO, EQUITY, FX, METAL, RATES, TREASURY_P
 
 VENDOR = "Pyth Network"
 PRICE, RATE = "meridian.v1.Price", "meridian.v1.Rate"
+#: The price's optional field each price family fills: Pyth's confidence
+#: interval (ruling 895).
+CONFIDENCE = "meridian.v1.Price.confidence"
+#: The class of source behind every Pyth price (ruling 906).
+COMPOSITE = "composite"
 API_KEY, SAMPLE_DATA = "api_key", "sample_data"
 #: New York's day, ending at 17:00: the US Treasury market's close in Pyth's
 #: schedule for its Treasury feeds.
@@ -116,7 +123,7 @@ def _price(key: str) -> DatasetDeclaration:
     return DatasetDeclaration(
         key=key,
         vendor=VENDOR,
-        data_types=[PRICE],
+        data_types=[PRICE, CONFIDENCE],
         modes=["pull", "stream"],
         cadence=1,
         history=0,
@@ -124,6 +131,7 @@ def _price(key: str) -> DatasetDeclaration:
         day_time_zone="Etc/UTC",
         day_end_minute=0,
         declared_delay_ns=DECLARED_DELAY_NS,
+        price_source_class=COMPOSITE,
     )
 
 
@@ -152,5 +160,6 @@ CATALOGUE = [
         day_time_zone=DAY_TIME_ZONE,
         day_end_minute=DAY_END_MINUTE,
         declared_delay_ns=DECLARED_DELAY_NS,
+        price_source_class=COMPOSITE,
     ),
 ]

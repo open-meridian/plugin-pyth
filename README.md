@@ -6,7 +6,7 @@ key, into your deployment's lake.
 
 | Dataset | What it holds | Now |
 |---|---|---|
-| `crypto`, `fx`, `equity`, `metal`, `commodities` | Pyth's composite prices, by family | Wait for the contract revision adding a composite price and its confidence interval |
+| `crypto`, `fx`, `equity`, `metal`, `commodities` | Pyth's composite prices, by family: each a mid with its confidence interval, the datasets' class of source composite | Records |
 | `rates` | Pyth's US Treasury constant-maturity par yields, 2 to 30 years, as points of the par yield curve | Records |
 | `treasury_prices` | The on-the-run US Treasuries' clean prices and yields | Waits for the bond template |
 

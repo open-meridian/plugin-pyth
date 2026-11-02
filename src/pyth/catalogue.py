@@ -8,10 +8,8 @@ own family (ruling 893's keys), or to none, with why:
 
 - `crypto`, `fx`, `equity`, `metal`, `commodities`: Pyth's asset types
   `Crypto`, `FX`, `Equity`, `Metal` and `Commodities`, a base priced in a
-  quote (`BTC` in `USD`). Their prices wait for the contract-28 amendment
-  (rulings 896 to 898): the lake's price has no kind for Pyth's composite of
-  its publishers and no field for its confidence interval yet, so these
-  datasets are declared and not presented (prices.py).
+  quote (`BTC` in `USD`). Each price is Pyth's composite `mid` with its
+  confidence interval (ruling 906; prices.py).
 - `rates`: Pyth's US Treasury constant-maturity par yields
   (`InterestRate.Index.CMUS<tenor>`), one curve, a point per tenor -- the
   rate kind as it is (rates.py).

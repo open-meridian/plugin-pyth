@@ -1,4 +1,4 @@
-"""The data suite (meridian.suites) at contract v28, each case Pyth presents
+"""The data suite (meridian.suites) at contract v29, each case Pyth presents
 mapped to the plugin's own work on Hermes' answers -- the feed catalogue as
 Hermes answered it, and updates in Hermes' documented shape.
 
@@ -17,13 +17,19 @@ yields as points of the US Treasury par yield curve:
 - `an-asset-that-does-not-resolve`, the wants, the licences, the feed delay,
   and the cases the SDK answers.
 
-Not presented, with why: every case about a price (`closes`, `bars`, a
-currency's rate, a crypto asset's or a security's price, prices on a
-venue), since Pyth's composite price waits for the contract-28 amendment
-(prices.py); trades and quotes, which Hermes never states; outcomes, chains
-and filings; a reference rate's fixing (Hermes states no effective date), an
-index level and two conventions for one tenor, which Pyth never states; a
-calendar and a settlement date, which it never needs.
+And from 0.2.0 (rulings 906 and 990), Pyth's composite mids: `an-exact-price`
+(Bitcoin's, to eight places), `a-want-recorded-against` (a business date's
+price) and `a-subject-another-source-resolved` (Apple's, by another source's
+symbol).
+
+Not presented, with why: a close, a forming day, a bar and an FX close,
+which Pyth never states (its prices are composite mids); a crypto asset
+quoted in a token, not served this version (prices.py); prices on a venue,
+since Pyth is none; trades and quotes, which Hermes never states; outcomes,
+chains and filings; a reference rate's fixing (Hermes states no effective
+date), an index level and two conventions for one tenor, which Pyth never
+states; a calendar and a settlement date, which it never needs; contract
+v29's derived series and pool factors.
 """
 
 from __future__ import annotations
@@ -40,16 +46,37 @@ from pyth import prices
 from pyth.hermes import read_updates
 from pyth.synthetic import Synthetic
 
-from conftest import INSTANCE, PAR, Clock, Sample, answering, ids_of, want, work
+from conftest import AAPL, BTC, INSTANCE, PAR, Clock, Sample, answering, ids_of, want, work
 
-#: The cases about a price, each waiting for the amendment.
+#: The cases about a price, each Pyth presents or not (below).
 _PRICES = (
     "a-daily-close", "the-forming-day-restated", "an-exact-price", "a-daily-bar",
     "an-fx-rate", "a-stablecoin-quote", "a-venue-resolved", "a-venue-not-held",
     "a-want-recorded-against", "a-subject-another-source-resolved",
 )  # fmt: skip
+_MIDS = "Pyth states a composite mid of its publishers' prices (ruling 906)"
+PRICE = "meridian.v1.Price"
+#: Contract v29's data cases (SDK 0.34), neither of them Pyth's. Apart, as
+#: meridian 0.1.57's role-suite rule does not know them yet.
+V29_NOT_PRESENTED = dict(
+    (
+        (
+            "records-a-derived-series",
+            "Pyth's index feeds are commodities' prices, recorded as prices; it records no "
+            "series derived by its publisher",
+        ),
+        ("records-a-pools-factor", "Pyth publishes no pool's factor"),
+    )
+)
 PYTH_NEVER = {
-    **{case: prices.WHY_PRICES_WAIT for case in _PRICES},
+    "a-daily-close": f"{_MIDS}, never a day's close",
+    "the-forming-day-restated": f"{_MIDS}, never a day's candle",
+    "a-daily-bar": f"{_MIDS}, never a bar",
+    "an-fx-rate": f"{_MIDS}: a currency's rate is its mid, never a close",
+    "a-stablecoin-quote": prices.WHY_TOKEN_QUOTE,
+    "a-venue-resolved": "Pyth is no venue: its composite names none",
+    "a-venue-not-held": "Pyth is no venue: its composite names none",
+    **V29_NOT_PRESENTED,
     "a-rate-fixing": (
         "the reference rates Pyth relays carry no effective date in Hermes, which a fixing's "
         "row needs; the administrator's own plugin records them"
@@ -69,7 +96,8 @@ PRESENTED = {
     "a-curve-for-a-date", "a-tenor-not-published", "a-curve-point-from-another-source",
     "a-same-day-revision", "records-a-datasets-liveness", "an-asset-that-does-not-resolve",
     "a-subject-declined", "a-standing-want-withdrawn", "reads-its-datasets-licences",
-    "reports-its-feed-delay",
+    "reports-its-feed-delay", "an-exact-price", "a-want-recorded-against",
+    "a-subject-another-source-resolved",
 }  # fmt: skip
 
 DAY = "2026-10-29"
@@ -85,7 +113,7 @@ def producers(tmp: Path) -> dict[str, Callable[[Recorder], Awaitable[None]]]:
             answering(recorder)
             done = work(tmp, recorder, transport)
             recorder.answer("ObservationsWanted", lambda _: message)
-            await recorder.receive(observations_wanted=done.on_want)
+            await recorder.hear(done)
 
         return produce
 
@@ -121,7 +149,7 @@ def producers(tmp: Path) -> dict[str, Callable[[Recorder], Awaitable[None]]]:
             "WantWithdrawn",
             lambda _: ops.WantWithdrawnEvent(want_id="w-standing", dataset=f"{INSTANCE}:rates"),
         )
-        await recorder.receive(want_withdrawn=done.on_withdrawn)
+        await recorder.hear(done)
 
     async def licences(recorder: Recorder) -> None:
         dataset = f"{INSTANCE}:rates"
@@ -156,6 +184,13 @@ def producers(tmp: Path) -> dict[str, Callable[[Recorder], Awaitable[None]]]:
         "a-standing-want-withdrawn": withdrawn,
         "reads-its-datasets-licences": licences,
         "reports-its-feed-delay": feed_delay(delayed),
+        "an-exact-price": wanted(want("w-1", [BTC], key="crypto", data_type=PRICE).message),
+        "a-want-recorded-against": wanted(
+            want("w-1", [BTC], key="crypto", data_type=PRICE, day=DAY).message
+        ),
+        "a-subject-another-source-resolved": wanted(
+            want("w-1", [AAPL], key="equity", data_type=PRICE, day=DAY).message
+        ),
     }
 
 
@@ -166,7 +201,6 @@ def test_the_data_suite_passes(tmp_path: Path) -> None:
     assert set(report.passed_cases) == PRESENTED | set(ANSWERED_BY_SDK)
 
 
-def test_every_price_case_waits_for_the_amendment() -> None:
+def test_every_price_case_is_presented_or_said_why() -> None:
     for case in _PRICES:
-        assert NOT_PRESENTED[case] == prices.WHY_PRICES_WAIT
-    assert not prices.presented()
+        assert (case in PRESENTED) != (case in NOT_PRESENTED)
