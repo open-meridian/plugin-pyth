@@ -32,8 +32,10 @@ the plugin.
    not covered; no on-the-run Treasury's price is recorded.
 7. A composite mid (from 0.2.0, rulings 906 and 990): the euro's record,
    resolved by its ISO 4217 code, its price of `fx` asked of the plugin,
-   which matches it to Pyth's EUR/USD feed and records its mid, 1.16431 US
-   dollars, with its confidence interval, 0.00009.
+   which matches it to Pyth's EUR/USD feed and records its mid in US
+   dollars -- the sample's latest, 1.16431, or a later one its stream
+   states, since the read stands and is kept current -- with its confidence
+   interval, 0.00009.
 """
 
 import json
@@ -211,7 +213,9 @@ def run():
         reader(f"/prices?subject={euro}&dataset={FX}")),
         "step 7, the euro's price of fx was not recorded")
     [mid] = read["rows"]
-    must(mid["kind"] == "PRICE_KIND_MID" and mid["amount"] == "1.16431" and mid["currency"] == "USD"
+    # The sample's latest, or one its stream states once the want stands.
+    must(mid["kind"] == "PRICE_KIND_MID" and mid["amount"] in ("1.16431", "1.16433", "1.16436")
+         and mid["currency"] == "USD"
          and mid["confidence"] == "0.00009" and mid["subject"] == euro and mid["dataset"] == FX,
          f"step 7, Pyth's composite mid of EUR/USD with its confidence interval: {mid}")
 
@@ -221,8 +225,8 @@ def run():
           f"and core listing the seven datasets as declared; licensed and entitled; the curve of 29 "
           f"October read at its close, seven points in tenor order (10-year 4.11234567, a par "
           f"yield, bond-equivalent, published at 17:00 New York); a crypto price of the curve "
-          f"and a Treasury's declined not covered; and the euro's composite mid, 1.16431 US "
-          f"dollars, its confidence 0.00009")
+          f"and a Treasury's declined not covered; and the euro's composite mid in US dollars, "
+          f"its confidence 0.00009")
 
 
 def main():
