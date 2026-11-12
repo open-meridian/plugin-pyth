@@ -13,8 +13,7 @@ documentation).
   stands behind it -- "Pyth Network's composite of its publishers' prices",
   and for the Treasury families the publishers Pyth's announcement names,
   OpenYield, Fenics Market Data and Tradeweb -- is said on the Datasets page
-  and in docs/terms.md; the licence default is left as it stands (rulings
-  1030 to 1032: it is not extended, `underlying_source` among it).
+  and in docs/terms.md, and in the Treasury datasets' terms in words.
 - **the five price families**: `meridian.v1.Price` with its confidence
   interval (`meridian.v1.Price.confidence`), pulled for the latest or a
   past moment and streamed from Hermes for a standing want; real time
@@ -34,16 +33,20 @@ documentation).
   reaches; a moment before a feed's first is declined as beyond history.
 - no venue (Pyth is no venue) and no calendar.
 
-**Each licence default** is what Pyth's subscription terms say (Douro Labs'
-Terminal Subscription Terms, 12 August 2026; docs/terms.md), which the
-deployment's licence confirms or replaces on Data sources -- never whether
-a deployment meets them: kept, for the subscriber's internal business use;
-displayed in the subscriber's own products, never as a feed or file to a
-third party; derived data distributable where it neither discloses nor
-recreates the data, so not restricted here; redistribution not allowed
-(Pro's limited rights are set by its own order); no attribution asked; Pyth's
-names not affiliated. Not one person's terms: a subscription is a
-business's.
+**Its terms and pricing** (contract 30, ruling 1032): no dataset declares a
+licence. Each describes Pyth's terms in plain words (`TERMS`, and
+`TREASURY_TERMS` for the Treasury datasets, naming the publishers Pyth
+names; ruling 1039): its plans, Douro Labs' Terminal Subscription Terms (12
+August 2026) and the composite behind every value (docs/terms.md). The
+deployment admin sets the deployment's licence on Data sources, which is
+the one enforced -- never whether a deployment meets Pyth's terms.
+
+**How a gap is recovered** (W10.14): `rates` is `backfill` -- a business
+date's curve is read again at its close from Hermes' history, one row a
+tenor a day; the price families are `stream_only` -- Hermes answers a
+moment, not every update in a range, so a gap in the stream is not fetched
+again whole; `treasury_prices` is `none` -- it records nothing until v29's
+`bond` template. No sessions calendar, no `most_shards`.
 
 **Storage**: one kind of raw record, Hermes' answers as received (never the
 key), a month by default.
@@ -56,7 +59,7 @@ for since 26 August 2026 -- and sample data, a developer's.
 from __future__ import annotations
 
 import meridian
-from meridian import DatasetDeclaration, DatasetLicence, RecordKind
+from meridian import DatasetDeclaration, RecordKind
 
 from .catalogue import COMMODITIES, CRYPTO, EQUITY, FX, METAL, RATES, TREASURY_PRICES
 
@@ -85,13 +88,24 @@ NOT_AFFILIATED = (
     "Pyth and Pyth Network are trademarks of their owners. This plugin is not affiliated "
     "with or endorsed by the Pyth Data Association or Douro Labs."
 )
-LICENCE = DatasetLicence(
-    kept=True,
-    derived_use=True,
-    derived_use_terms="not_restricted",
-    display=True,
-    redistribution="not_allowed",
-    not_affiliated_notice=NOT_AFFILIATED,
+#: Pyth's terms, in plain words (contract 30, ruling 1032), as docs/terms.md
+#: summarises them on 30 October 2026.
+TERMS = (
+    "Pyth Network's prices from Hermes, each Pyth's composite of its publishers' prices. A "
+    "Pyth API key under a Pyth Terminal plan is needed for every price: Free has no API "
+    "access, Starter serves crypto with display rights and no redistribution, Pro every "
+    "family with display and non-display rights and limited redistribution. Douro Labs' "
+    "Terminal Subscription Terms (12 August 2026) put the data to the subscriber's internal "
+    "business purposes; it may be displayed in the subscriber's own products, provided no "
+    "third party gets it as a feed or file; derived data may be distributed where it neither "
+    "discloses nor recreates the data; resale and redistribution are not allowed; fees are "
+    "not cancellable. Pyth provides its feeds as they are, and they may change or stop "
+    "without notice. " + NOT_AFFILIATED
+)
+#: The Treasury datasets' terms: Pyth's, and the publishers it names for them.
+TREASURY_TERMS = TERMS + (
+    " Pyth's announcement of July 2026 names OpenYield, Fenics Market Data and Tradeweb among "
+    "the publishers of its US Treasury pricing."
 )
 
 
@@ -127,7 +141,8 @@ def _price(key: str) -> DatasetDeclaration:
         modes=["pull", "stream"],
         cadence=1,
         history=0,
-        licence_default=LICENCE,
+        terms_and_pricing=TERMS,
+        gap_recovery="stream_only",
         day_time_zone="Etc/UTC",
         day_end_minute=0,
         declared_delay_ns=DECLARED_DELAY_NS,
@@ -144,7 +159,8 @@ CATALOGUE = [
         modes=["pull", "stream"],
         cadence=1,
         history=0,
-        licence_default=LICENCE,
+        terms_and_pricing=TREASURY_TERMS,
+        gap_recovery="backfill",
         day_time_zone=DAY_TIME_ZONE,
         day_end_minute=DAY_END_MINUTE,
         declared_delay_ns=DECLARED_DELAY_NS,
@@ -156,7 +172,8 @@ CATALOGUE = [
         modes=["pull"],
         cadence=1,
         history=0,
-        licence_default=LICENCE,
+        terms_and_pricing=TREASURY_TERMS,
+        gap_recovery="none",
         day_time_zone=DAY_TIME_ZONE,
         day_end_minute=DAY_END_MINUTE,
         declared_delay_ns=DECLARED_DELAY_NS,
