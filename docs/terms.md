@@ -40,9 +40,10 @@ price dataset declares its class of source as composite.
 
 ## The licence
 
-Each dataset's default licence declares what the subscription terms say:
-kept, for internal use, displayed, derived use not restricted, no
-redistribution, no attribution required. A Pro plan's limited
+Each dataset describes these terms in words on the Data sources page, and
+declares no licence: set yours there (internal use, displayed, derived use
+not restricted, no redistribution suits a Starter plan); until one is set,
+the lake keeps the rows and reads every use right restrictively. A Pro plan's limited
 redistribution rights are set by its own order: record them on Data
 sources. The dataset's licence on your Data sources page is what your
 deployment records; neither the plugin nor this page says whether your use

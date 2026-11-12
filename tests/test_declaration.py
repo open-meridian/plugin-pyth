@@ -6,7 +6,7 @@ from __future__ import annotations
 from meridian.plugin.v1 import operations_pb2 as ops
 
 from pyth.declaration import DECLARATION
-from pyth.declared import CATALOGUE, VENDOR
+from pyth.declared import CATALOGUE, TERMS, TREASURY_TERMS, VENDOR
 
 
 def test_seven_datasets_one_per_family() -> None:
@@ -37,14 +37,21 @@ def test_prices_and_rates_by_their_kinds() -> None:
     assert by_key["rates"].day_end_minute == 17 * 60
 
 
-def test_each_licence_is_pyths_subscription_terms() -> None:
+def test_each_dataset_describes_pyths_terms_and_how_a_gap_is_recovered() -> None:
+    # Contract 30 (ruling 1032): Pyth's terms in words, no licence; the
+    # Treasury datasets name the publishers Pyth names (ruling 1039).
+    by_key = {d.key: d for d in CATALOGUE}
     for dataset in CATALOGUE:
-        licence = dataset.licence_default
-        assert licence is not None
-        assert licence.kept and licence.display and not licence.personal_use
-        assert licence.derived_use_terms == "not_restricted"
-        assert licence.redistribution == "not_allowed"
-        assert "not affiliated" in licence.not_affiliated_notice
+        said = dataset.terms_and_pricing
+        assert said in (TERMS, TREASURY_TERMS) and len(said) <= 2000
+        assert "redistribution are not allowed" in said and "not affiliated" in said
+        assert not dataset.sessions_calendar_id
+    assert by_key["rates"].terms_and_pricing == TREASURY_TERMS
+    assert "Tradeweb" in TREASURY_TERMS
+    recovery = {d.key: d.gap_recovery for d in CATALOGUE}
+    assert recovery.pop("rates") == "backfill", "a day's curve read again at its close"
+    assert recovery.pop("treasury_prices") == "none", "it records nothing yet"
+    assert set(recovery.values()) == {"stream_only"}, "Hermes answers a moment, not a range"
 
 
 def test_the_key_is_a_secret_setting() -> None:

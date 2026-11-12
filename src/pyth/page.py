@@ -38,7 +38,6 @@ pages = meridian.Pages(TITLE, templates=Path(__file__).parent / "templates")
 
 #: How many wants the Datasets tab draws; read_datasets answers every one held.
 SHOWN_WANTS = 3
-DEFAULT_TERMS = "kept, internal use, display, derived use not restricted, no redistribution"
 BEHIND = {
     **{key: prices.COMPOSITE for key in KEYS},
     "rates": prices.TREASURY_PUBLISHERS,
@@ -150,7 +149,8 @@ def datasets_read(work: Work) -> DatasetsRead:
         "As the key's plan allows" if work.hermes.mode == "live" else "Sample data",
     )
     return DatasetsRead(
-        served=[replace(s, default_terms=DEFAULT_TERMS) for s in served],
+        # Each row's terms are its dataset's own words (contract 30, ruling 1032).
+        served=served,
         wants=list(data.want_rows(work.wants)),
         reads_instruments=True,
         families=families(work),

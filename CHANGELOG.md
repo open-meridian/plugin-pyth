@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.0
+
+On open-meridian 0.36.0, contract 30, on core aae501d's harness (contract v30,
+chart 0.1.538).
+
+- **Pyth's terms in words** (ruling 1032): `licence_default` is gone from the
+  contract. `meridian plugin migrate --to 0.36.0` could not read the shared
+  licence (a module-level `LICENCE` naming a `not_affiliated_notice` held in
+  another name), so it was written by hand: each dataset describes Pyth's
+  terms (`declared.TERMS`): a key under a Pyth Terminal plan (Free, Starter,
+  Pro and what each grants), Douro Labs' Terminal Subscription Terms
+  (internal business use, display in the subscriber's own products, derived
+  data where it neither discloses nor recreates the data, no resale or
+  redistribution), no warranty, the not-affiliated notice; the Treasury
+  datasets (`TREASURY_TERMS`) add the publishers Pyth names (ruling 1039).
+  The Datasets page draws each dataset's own words in place of its fixed
+  default. The plugin declares no licence: until a deployment admin sets one
+  on Data sources, the lake keeps the rows and reads every use right
+  restrictively.
+- **How a gap is recovered** (W10.14): `rates` `backfill` (a day's curve read
+  again at its close from Hermes' history); the five price families
+  `stream_only` (Hermes answers a moment, not every update in a range);
+  `treasury_prices` `none` (nothing recorded until v29's `bond` template). No
+  sessions calendar, no `most_shards`.
+- **Pins**: open-meridian 0.36.0 and its base by digest; meridian 0.1.60 in
+  the check workflow; core's runtime and harness at `aae501d`, by digest.
+
 ## 0.2.0
 
 Pyth's prices recorded, as composite mids (rulings 906 and 990), on
